@@ -54,7 +54,7 @@ if __name__ == "__main__":
     print("Creating 3-COL train dataset...")
     Q = 3
     seed = 2
-    ngraphs_each = 400
+    ngraphs_each = 1200
     Ns = [2**exp for exp in range(4, 9)]
     cs = np.arange(3.32, 4.95, 0.18)
     path = '3COL/train/'

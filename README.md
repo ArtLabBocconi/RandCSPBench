@@ -47,7 +47,7 @@ Each dataset contains a split for the train and test sets. The problem sizes are
 Optionally, out-of-distribution test datasets with sizes up to $N=16384$ can be created. Not all instances of the problems admit solutions.
 
 | Dataset | # Train Instances |# Test Instances |
-|---------|-------------|
+|---------|-------------|---------------|
 | 3-SAT    |     168000    |   42000    | 
 | 4-SAT    |     84000    |   21000    | 
 | 3-col    |      60000   | 20000   | 

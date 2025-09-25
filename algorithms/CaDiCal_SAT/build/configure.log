@@ -1,0 +1,10 @@
+./configure-requires-c++11.cpp:7:20: error: variadic macros are a C99 feature [-Werror,-Wvariadic-macros]
+#define MACRO(FMT, ...) printf (FMT "\n", __VA_ARGS__)
+                   ^
+./configure-requires-c++11.cpp:14:8: error: 'auto' type specifier is a C++11 extension [-Werror,-Wc++11-extensions]
+  for (auto i : a) res += i;
+       ^
+./configure-requires-c++11.cpp:14:15: error: range-based for loop is a C++11 extension [-Werror,-Wc++11-extensions]
+  for (auto i : a) res += i;
+              ^
+3 errors generated.

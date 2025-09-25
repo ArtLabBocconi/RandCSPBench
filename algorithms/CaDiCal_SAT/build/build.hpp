@@ -1,0 +1,6 @@
+#define VERSION "2.0.0"
+#define IDENTIFIER "82ba69a7691e2a761577897da60afdc867c67bdc"
+#define SHORTID "82ba69a"
+#define COMPILER "Apple clang version 15.0.0 (clang-1500.3.9.4)"
+#define FLAGS "-Wall -Wextra -O3 -DNDEBUG -std=c++11"
+#define DATE "Tue Apr 30 17:49:42 CEST 2024 Darwin mbp14.local 23.4.0 arm64"

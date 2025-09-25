@@ -118,7 +118,6 @@ For coloring problems, either reduction to a SAT instance can be used, or the fo
 - Belief Propagation
 - Focused Metropolis Search
 - Simulated Annealing
-- Survey Propagation
 
 **Coloring: Neural Algorithms**
 - QuerySAT

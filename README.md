@@ -8,7 +8,7 @@ This repository contains all the code and data required to reproduce the benchma
 Our benchmark, **RandSATBench**, provides a mixed set of easy, hard, and unsatisfiable instances of constraint satisfaction problems, 
 in particular *q-coloring* and *Boolean satisfiability* problems. 
 
-The goal is to have a challenging setting where to compare the performance of deep learning methods (in particular Graph Neural Networks) versus classical exact and heuristic solvers. 
+The goal is to have a challenging setting to compare the performance of deep learning methods (in particular Graph Neural Networks) versus classical exact and heuristic solvers. 
 
 ## Structure of the Repository
 
@@ -73,7 +73,7 @@ julia gen_graphs_sat.jl
 julia gen_graphs_sat.jl --test-ood # to also generate larger problem sizes
 ```
 
-We also provide ground truth solutions obtained by running the CaDiCal solver for a limited amount of time on each instance. 
+We also provide ground truth solutions obtained by running the CaDiCal solver for a short time (a few minutes) on each instance. 
 The solutions can be found in the files `datasets/3SAT/train_labels.csv` and `datasets/4SAT/train_labels.csv`. A labels' file contains in each row a cnf file name, whether it could be solved or not by CaDiCal, and the assignment of variables (minus denotes negation).
 
 
@@ -127,7 +127,7 @@ For coloring problems, either reduction to a SAT instance can be used, or the fo
 
 The folder `results_evaluation/` contains the results of the evaluation of the algorithms on the dataset. The result files in this repo are used to produce all plots and tables in the paper.
 
-The folder `results_evaluation/analysis-results/` is produced by the notebook `results_evaluation/analysis.ipynb` and contains aggregated statistics in csv format.
+The folder `results_evaluation/analysis-results/` is produced by the notebook `results_evaluation/analysis.ipynb` and contains aggregated statistics in CSV format.
 
 The files `results_evaluation/analysis-results/[DATASET]_best_per_sample.csv` are particularly useful, as they contain the best performance of any algorithm on each instance of the dataset.
 

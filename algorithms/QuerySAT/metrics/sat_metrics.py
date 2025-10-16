@@ -78,8 +78,8 @@ class SATAccuracy(Metric):
         sat_clauses_per_graph = tf.sparse.sparse_dense_matmul(gc_adj, clauses)
         sat_clauses_per_graph = tf.squeeze(sat_clauses_per_graph, axis=-1)
         total_acc = tf.equal(sat_clauses_per_graph, tf.sparse.reduce_sum(gc_adj, axis=-1))
-        # Toggle to compute number of violated clauses instead of total_acc
-        #total_acc = tf.reduce_sum(tf.cast(tf.not_equal(sat_clauses_per_graph, tf.sparse.reduce_sum(gc_adj, axis=-1)), tf.int32))
+        # Toggle to compute number of violated clauses (i.e. energy) instead of total_acc
+        #total_acc = tf.reduce_sum(tf.cast(tf.sparse.reduce_sum(gc_adj, axis=-1) - sat_clauses_per_graph, tf.int32))
         return acc, total_acc
 
     @staticmethod

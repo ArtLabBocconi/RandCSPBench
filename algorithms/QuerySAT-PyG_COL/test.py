@@ -1,8 +1,8 @@
-import argparse
 import os
 import gc
 import sys
-import torch 
+import torch
+import argparse
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -25,14 +25,23 @@ def main(args):
     full_test =  args.full_test
     global_gpu = args.gpu
     K = args.K
-    train_dir = os.path.join(args.dataset_root, f'{K}SAT', 'sc', 'train-final')
-    train_label_file = os.path.join(args.dataset_root, f'{K}SAT', 'sc', 'train_labels-final.csv')
-    valid_dir = os.path.join(args.dataset_root, f'{K}SAT', 'sc', 'test-final')
-    valid_label_file = os.path.join(args.dataset_root, f'{K}SAT', 'sc', 'test_labels-final.csv')
-    ckpt_path = os.path.join(args.ckpt_dir, args.ckpt_file)
-    K_ckpt = int(args.ckpt_file.split('_')[0][0])
     task = args.task.upper()
 
+    if task == 'SAT':
+        train_dir = os.path.join(args.dataset_root, f'{K}SAT', 'sc', 'train-final')
+        valid_dir = os.path.join(args.dataset_root, f'{K}SAT', 'sc', 'test-final')
+        valid_label_file = os.path.join(args.dataset_root, f'{K}SAT', 'sc', 'test_labels-final.csv')
+    else:
+        train_dir = os.path.join(args.dataset_root, f'{K}COL', 'train-sat')
+        valid_dir = os.path.join(args.dataset_root, f'{K}COL', 'test-sat')
+        valid_label_file = os.path.join(args.dataset_root, f'{K}COL', f'{K}COL-test-labels.csv')
+
+
+    ckpt_path = os.path.join(args.ckpt_dir, args.ckpt_file)
+    K_ckpt = int(args.ckpt_file.split('_')[0][0])
+
+    # Load model
+    model = GNNPL.load_from_checkpoint(ckpt_path)
 
     # Assertions
     assert task in ['SAT', 'COL'], f'Task must be SAT or COL, got {task}'
@@ -61,8 +70,6 @@ def main(args):
     print(f' - Full test: {full_test}')
     print(f' - GPU: {global_gpu}')
 
-    # Load model
-    model = GNNPL.load_from_checkpoint(ckpt_path)
 
     # Redefine parameters, name them opts and use them for the rest of the code. Need to understand dataset issues
     opts = model.hparams['args']
@@ -71,10 +78,9 @@ def main(args):
     opts.full_test = full_test
     opts.ood_largeN_eval = ood_largeN_eval
     opts.gpu = global_gpu
-    opts.valid_dir = valid_dir
     opts.train_dir = train_dir
+    opts.valid_dir = valid_dir
     opts.valid_label_file = valid_label_file
-    opts.train_label_file = train_label_file    
 
     if ood_largeN_eval:
         valid_dir = opts.valid_dir.split('/')[:-1] + ['test-ood']
@@ -89,19 +95,19 @@ def main(args):
         ns=None
     )        
 
-    if not ood_largeN_eval:
-        test_labels = pd.read_csv(opts.valid_label_file)
-        ids = [int(fn.split('id')[-1].split('.')[0]) for fn in test_labels['cnf_file'].values]
-    else:
-        ids = [int(filename.split('id')[-1].split('.')[0]) for filename in val_loader.dataset.all_files['unknown']]
+    ids = [int(filename.split('id')[-1].split('.')[0]) for filename in val_loader.dataset.all_files['unknown']]
     
     print('Testloader created', len(val_loader))
     print(f'Starting evaluation procedure for {ckpt_path}...')
-    model = model.to(torch.device(f'cuda:{global_gpu}'))
+
+    if global_gpu < 0:
+        model = model.to(torch.device('cpu'))
+    else:
+        model = model.to(torch.device(f'cuda:{global_gpu}'))
     model.eval()
 
     # Create results df
-    df = [['N', 'M', 'id', 'E']] if args.task == 'sat' else [['N', 'M', 'id', 'E', 'assignment']]
+    df = [['N', 'M', 'id', 'E']] if task == 'SAT' else [['N', 'M', 'id', 'E', 'assignment']]
     for i, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
         batch = batch.to(model.device)
         batch_size = batch.num_graphs
@@ -129,20 +135,22 @@ def main(args):
             c_loss = -safe_log(1 - l_pred_aggr.exp())
             loss = scatter_sum(c_loss, c_batch, dim=0)
             assert batch_size == loss.shape[-1], "the loss must be calculated for each element of the batch"
-            losses.append(loss.mean())
-
-        losses = torch.stack(losses, dim=0)
+            losses.append(loss)
 
         # Index of best assignment (no need for the complete loss evaluation as in training)
-        best_pred_idx = torch.argmin(losses)
-        final_v_pred = v_pred[:, best_pred_idx]
-        
+        losses = torch.stack(losses, dim=0)
+        best_pred_idx = torch.argmin(losses, dim=0)
+
+        # Get the best assignments by batch slicing
+        batch_sliced = v_pred.reshape(batch_size, -1, v_pred.size(1))
+        broadcasted_idx = best_pred_idx.long().view(batch_size, 1, 1).expand(-1, batch_sliced.size(1), 1)
+        final_v_pred = batch_sliced.gather(dim=2, index=broadcasted_idx).squeeze(2).view(-1)
+
         # check if each clause is satisfied for the current problem given the predicted assignment
-        v_assign = (final_v_pred > 0.5).float()
+        # This allows to calculate the energy (number of unsatisfied clauses)
+        v_assign = (final_v_pred >= 0.5).float()
         l_assign = torch.stack([v_assign, 1 - v_assign], dim=1).reshape(-1)
         c_sat = torch.clamp(scatter_sum(l_assign[l_edge_index], c_edge_index, dim=0, dim_size=c_size), max=1) 
-        
-        # calculate solution energies (total number of unsatisfied clauses)
         c_unsat = 1 - c_sat 
         energies = scatter_sum(c_unsat, c_batch, dim=0, dim_size=batch_size)
 
@@ -150,21 +158,28 @@ def main(args):
         ids_batch = ids[i*batch_size:(i+1)*batch_size]
 
         # Append assignments to the df. This is needed for the sat - to - col energy conversion
-        if args.task == 'COL':
+        if task == 'COL':
+            bitstrings = v_assign.view(batch_size, -1).detach().cpu().numpy()
+            bitstrings = np.array([str(x.tolist()) for x in bitstrings])
             append_material = np.stack([Ns.detach().cpu().numpy(), Ms.detach().cpu().numpy(), \
                                     ids_batch, energies.detach().cpu().numpy(), \
-                                    v_assign.detach().cpu().numpy()]).astype(int).T
+                                    bitstrings]).T
         else:
             append_material = np.stack([Ns.detach().cpu().numpy(), Ms.detach().cpu().numpy(), \
                                     ids_batch, energies.detach().cpu().numpy()]).astype(int).T          
         df.append(append_material)
 
         # Empty cache and manually perform gc for any unexpected memory clogging
-        if i % 4:
+        if i % 5 == 0:
             gc.collect()
-            torch.cuda.empty_cache()
+            if global_gpu >= 0:
+                torch.cuda.empty_cache()
 
     df = pd.DataFrame(np.vstack(df[1:]), columns=df[0])
+    df['N'] = df['N'].astype(int)
+    df['M'] = df['M'].astype(int)
+    df['id'] = df['id'].astype(int)
+    df['E'] = df['E'].astype(float)
     df['alpha'] = df['M'] / df['N']
     df['Solved'] = (df['E'] == 0).astype(int)
 
@@ -185,8 +200,8 @@ if __name__ == '__main__':
     parser.add_argument('--ckpt_dir', type=str, required=True, default='ckpt', help='Directory where the checkpoints are stored')
     parser.add_argument('--dataset_root', type=str, default='../../datasets', help='Directory where the benchmarks are stored')
     parser.add_argument('--save_dir', type=str, default='results_csv/', help='Directory where to save the evaluation results')
-    parser.add_argument('--n_iterations', type=int, default=32, help='Number of iterations for message passing (not considered if scaling_factor is specified)')
-    parser.add_argument('--scaling_factor', type=float, default=2., help='Factor that scales the number of msg passing iterations based on the number of variables')
+    parser.add_argument('--n_iterations', type=int, default=32, help='Number of iterations for menssage passing (not considered if scaling_factor is specified)')
+    parser.add_argument('--scaling_factor', type=float, default=1., help='Factor that scales the number of msg passing iterations based on the number of variables')
     parser.add_argument('--supervised_eval', action='store_true', help='perform the evaluation procedure using the supervised models. If false, uses the unsupervised ones (False by default)')
     parser.add_argument('--ood_largeN_eval', action='store_true', help='perform the evaluation procedure on larger problems on which the model has never been trained on (False by default)')
     parser.add_argument('--K', type=int, default=3, help='Number of variables in a clause of the SAT problem')

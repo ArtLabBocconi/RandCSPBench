@@ -56,7 +56,10 @@ def main(args):
     logger = None
     dt_string = datetime.now().strftime('%d-%m-%Y-%H-%M')
     K = int(args.train_dir.split('/')[3][0])
-    run_name = f'{K}SAT_{args.task}_QuerySAT_{args.loss}_seed={args.seed}_trainS={args.train_sample_size}_validS={args.valid_sample_size}_perN={args.sample_per_N}_trainNs={n_savename}_{dt_string}'
+    if 'COL' in args.train_dir:
+        run_name = f'{K}COLSAT_{args.task}_QuerySAT_{args.loss}_seed={args.seed}_trainS={args.train_sample_size}_validS={args.valid_sample_size}_perN={args.sample_per_N}_trainNs={n_savename}_{dt_string}'
+    else:
+        run_name = f'{K}SAT_{args.task}_QuerySAT_{args.loss}_seed={args.seed}_trainS={args.train_sample_size}_validS={args.valid_sample_size}_perN={args.sample_per_N}_trainNs={n_savename}_{dt_string}'
     
     if args.resume_from:
         run_name += '_continuation_from_' + args.resume_from.split('_')[-2] # gets the datetime string from the checkpoint saved with the suffix '_last'
@@ -70,7 +73,7 @@ def main(args):
         )
     
     checkpoint_callback = ModelCheckpoint(
-        monitor='acc_test', 
+        monitor='loss_test', 
         mode='max',
         save_top_k=1,
         filename=run_name + '_{epoch}',

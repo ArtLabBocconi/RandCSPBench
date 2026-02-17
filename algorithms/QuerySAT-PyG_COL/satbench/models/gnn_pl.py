@@ -40,7 +40,7 @@ class GNNPL(LightningModule):
         c_sat = torch.clamp(scatter_sum(l_assign[l_edge_index], c_edge_index, dim=0, dim_size=c_size), max=1)
         sat_batch = (scatter_sum(c_sat, c_batch, dim=0, dim_size=batch_size) == data.c_size).float()
 
-        # To calculate accuracy during evaluation, select only the SAT problems
+        # To calculate accuracy during evaluation, select only the SAT problems (Not used here - unsup only training)
         if not self.training:
             sat_batch = sat_batch[data.sat_problem]
         
@@ -80,21 +80,30 @@ class GNNPL(LightningModule):
                 c_loss = -safe_log(1 - l_pred_aggr.exp())
                 loss = scatter_sum(c_loss, c_batch, dim=0)
                 assert batch_size == loss.shape[-1], "the loss must be calculated for each element of the batch"
-                losses.append(loss.mean())
+                losses.append(loss)
 
             losses = torch.stack(losses, dim=0)
 
             # Multi-objective loss
-            u = v_pred.shape[1]
-            sorted_losses, indices = torch.sort(losses, descending=True)            
+            u = losses.size(0)
+            sorted_losses, indices = torch.sort(losses, dim=0, descending=True)
             weights = torch.arange(1, u + 1, device=losses.device, dtype=losses.dtype) ** 2
-            weights = weights[indices] 
-            loss_train = torch.sum(sorted_losses * weights) / torch.sum(weights)
-            final_loss += loss_train * time_weights[j] # Minimize loss over timesteps
+            weights = weights.unsqueeze(1).repeat_interleave(batch_size, dim=1)
+            weights = torch.gather(weights, dim=0, index=indices)
+            losses_train = torch.sum(sorted_losses * weights, dim=0) / torch.sum(weights, 0)
+            final_loss += losses_train.mean() * time_weights[j] # Minimize loss over timesteps
 
-            # Index of best assignment
-            best_pred_idx = torch.argmin(losses)
-            final_v_pred = v_pred[:, best_pred_idx]
+            # Get the best assignments by manual slicing
+            problems = v_pred.split((data.l_size // 2).tolist(), dim=0)
+            best_pred_idx = torch.argmin(losses, dim=0)
+            assert len(problems) == best_pred_idx.size(0) == batch_size, "these should correspond if batching is correct!"
+            
+            if i == len(v_pred_t)-1: # Data for training energy can be calculated only at the last timestep
+                final_v_pred = []
+                for i in range(batch_size):
+                    best = problems[i][:, best_pred_idx[i]]
+                    final_v_pred.append(best)
+                final_v_pred = torch.cat(final_v_pred, dim=0)
 
         energies = self.energy_fn(data, final_v_pred, l_edge_index, c_edge_index, c_size, c_batch, batch_size)
         self.log('loss_train', final_loss.detach().cpu().item(), on_step=True, on_epoch=False, prog_bar=True, batch_size=batch_size)
@@ -125,18 +134,24 @@ class GNNPL(LightningModule):
             c_loss = -safe_log(1 - l_pred_aggr.exp())
             loss = scatter_sum(c_loss, c_batch, dim=0)
             assert batch_size == loss.shape[-1], "the loss must be calculated for each element of the batch"
-            losses.append(loss.mean())
+            losses.append(loss)
 
         losses = torch.stack(losses, dim=0)
+        best_pred_idx = torch.argmin(losses, dim=0)
+        best_losses = losses.gather(dim=0, index=best_pred_idx.long().view(1,batch_size))
+        loss_test = best_losses.mean()
 
-        # Index of best assignment (no need for the complete loss evaluation as in training)
-        best_pred_idx = torch.argmin(losses)
-        loss_test = losses[best_pred_idx]
-        final_v_pred = v_pred[:, best_pred_idx]
+        # Get the best assignments by manual slicing
+        problems = v_pred.split((data.l_size // 2).tolist(), dim=0)
+        assert len(problems) == best_pred_idx.size(0) == batch_size, "these should correspond if batching is correct!"
+        
+        final_v_pred = []
+        for i in range(batch_size):
+            best = problems[i][:, best_pred_idx[i]]
+            final_v_pred.append(best)
+        final_v_pred = torch.cat(final_v_pred, dim=0)
 
-        sat_batch = self.count_sat(data, final_v_pred, l_edge_index, c_edge_index, c_size, c_batch, batch_size)
         self.log('loss_test', loss_test.detach().cpu().item(), on_step=False, on_epoch=True, prog_bar=True, batch_size=batch_size)
-        self.log('acc_test', sat_batch.mean().detach().cpu().item(), on_step=False, on_epoch=True, prog_bar=True, batch_size=batch_size)        
         
         torch.cuda.empty_cache()
         return loss_test.detach().cpu().item()

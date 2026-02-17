@@ -19,7 +19,6 @@ class QuerySAT(nn.Module):
         self.num_assignments = 8
         self.c_loss_scale = 4.
 
-
         self.variables_norm = PairNorm()
         self.clauses_norm = PairNorm()
 
@@ -94,16 +93,70 @@ class QuerySAT(nn.Module):
 
             # produce assignments
             out = torch.sigmoid(self.predictor(v_emb))
-
-            if self.training:
-                assignments.append(out)
+            assignments.append(out)
             
-            # del query_grad # free memory
+        return v_embs, c_embs, assignments
+        
+    def forward_test(self, l_size, c_size, l_edge_index, c_edge_index, l_emb, c_emb, batch_size, c_batch, l_batch):
 
-        if self.training:
-            return v_embs, c_embs, assignments
-        else:
-            return v_emb, c_emb, out
+        # Scaling factors based on node degrees
+        with torch.no_grad():
+            lit_deg = scatter_sum(torch.ones_like(l_edge_index), l_edge_index, dim=0, dim_size=l_size)
+            lit_deg_weight = torch.rsqrt(torch.clamp(lit_deg.float(), min=1.0))
+            var_deg = lit_deg.view(2, l_size//2).sum(dim=0)
+            var_degree_weight = 4.0 * torch.rsqrt(torch.clamp(var_deg.float(), min=1.0))
+        
+        v_emb, _ = torch.chunk(l_emb.reshape(l_size // 2, -1), 2, 1)
+        v_batch, _ = torch.chunk(l_batch.reshape(l_size // 2, -1), 2, 1)
+        v_emb = v_emb.detach()
+        v_batch = v_batch.detach()
+
+        for _ in range(self.opts.n_iterations):
+            # produce queries     
+            v_in = torch.cat([v_emb, torch.randn([l_size//2, 4]).to(l_emb.device)], axis=-1).detach()
+            query = torch.sigmoid(self.variables_query(v_in))
+            loss, c_loss = self.softplus_loss(query.view(-1), l_edge_index, c_edge_index, c_size, c_batch, batch_size)
+
+            with torch.set_grad_enabled(True):
+                query = torch.sigmoid(self.variables_query(v_in))
+                query.requires_grad_(True)
+
+                loss, c_loss = self.softplus_loss(
+                    query.view(-1), l_edge_index, c_edge_index, c_size, c_batch, batch_size
+                )
+
+                # take only first-order gradient
+                query_grad = torch.autograd.grad(
+                    loss, query,
+                    create_graph=False,
+                    retain_graph=False
+                )[0]
+
+            query_grad = query_grad.detach()
+            query_grad = query_grad * var_degree_weight.unsqueeze(1)  # scale
+            
+            with torch.no_grad():
+                # scale the clause loss
+                c_loss = c_loss * self.c_loss_scale
+
+                # update clause embeddings
+                c_in = torch.cat([c_emb, c_loss.view(-1, 1)], dim=-1)
+                c_emb = self.clauses_norm(self.clause_func(c_in), c_batch, batch_size)
+
+                # update variable embeddings
+                c2l_msg = c_emb[c_edge_index]
+                c2l_msg_aggr = scatter_sum(c2l_msg, l_edge_index, dim=0, dim_size=l_size)
+                c2l_msg_aggr = c2l_msg_aggr * lit_deg_weight.unsqueeze(1)
+                c2v_msg = c2l_msg_aggr.reshape(l_size//2, -1)
+                v_temp = torch.cat([v_in, c2v_msg, query_grad], dim=-1)
+                v_upd = self.variables_norm(self.variable_func(v_temp), v_batch.squeeze(), batch_size)
+                v_emb = v_upd + (0.1 * v_in[:, :-4])
+
+                # produce assignments
+                out = torch.sigmoid(self.predictor(v_emb))
+
+        return v_emb, c_emb, out
+        
 
 class GNN(nn.Module):
     def __init__(self, opts):
@@ -139,7 +192,10 @@ class GNN(nn.Module):
             l_emb = torch.randn(l_size, self.opts.dim, device=device) * math.sqrt(2 / self.opts.dim)
             c_emb = torch.randn(c_size, self.opts.dim, device=device) * math.sqrt(2 / self.opts.dim)
 
-        _, _, assignments = self.gnn(l_size, c_size, l_edge_index, c_edge_index, l_emb, c_emb, batch_size, c_batch, l_batch)
+        if self.training:
+            _, _, assignments = self.gnn(l_size, c_size, l_edge_index, c_edge_index, l_emb, c_emb, batch_size, c_batch, l_batch)
+        else:
+            _, _, assignments = self.gnn.forward_test(l_size, c_size, l_edge_index, c_edge_index, l_emb, c_emb, batch_size, c_batch, l_batch)
 
         return assignments
 

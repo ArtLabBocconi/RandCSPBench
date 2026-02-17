@@ -17,6 +17,7 @@ The repository is structured as follows:
 - `datasets/`: Scripts for generating the dataset.
 - `algorithms/`: Contains the source code with the implementation of classical and GNN-based algorithms.
 - `results_evaluation/`: Contains the results of the evaluation of the algorithms on the dataset. The result files in this repo are used to produce all plots and tables in the paper.
+- `plotting/`: Contains a Jupyter notebook that provides both the code and the resulting plots that have been used in the paper.
 
 ## Installation
 

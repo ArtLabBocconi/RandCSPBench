@@ -274,4 +274,20 @@ class SATDataset(Dataset):
                     data.y = label
                     return [data]
 
+    def filter_ids(self, ids):
+        filtered_files = []
+        filtered_labels = []
+        for split in self.splits:
+            for cnf_filepath, label in zip(self.all_files[split], self.all_labels[split]):
+                filename = os.path.splitext(os.path.basename(cnf_filepath))[0]
+                id_str = (filename.split('N')[-1].split('_')[0] + '-' + 
+                          filename.split('M')[-1].split('_')[0] + '-' + 
+                          filename.split('id')[-1].split('.')[0])
+                if id_str in ids:
+                    filtered_files.append(cnf_filepath)
+                    filtered_labels.append(label)
+        self.all_files[self.splits[0]] = filtered_files
+        self.all_labels[self.splits[0]] = filtered_labels
+        self.split_len = len(filtered_files)
+
 

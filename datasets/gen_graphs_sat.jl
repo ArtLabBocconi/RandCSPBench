@@ -34,9 +34,11 @@ function generate_dataset(;
     end
     if train_samples > 0
         mkpath(traindir)
+        @info "Writing training set to $(traindir)..."
     end
     if test_samples > 0
         mkpath(testdir)
+        @info "Writing test set to $(testdir)..."
     end
 
     for (i, N) in enumerate(Ns)
@@ -57,6 +59,7 @@ function generate_ood_testset(;
     αs = 3:0.1:5
 )
     dir = joinpath(@__DIR__, "$(k)SAT/test_ood")
+    @info "Writing out-of-distribution test set to $(dir)..."
     if isdir(dir)
         @warn "Directory already exists!"
     end
@@ -130,4 +133,15 @@ function (@main)(ARGS)
         Ns = [16, 32, 64, 128, 256],
         αs = 8:0.1:10
     )
+
+    ## TEST out-of-distribution
+    if args["test_ood"]
+        generate_ood_testset(;
+            seed = 17,
+            samples = 200,
+            k = 4,
+            Ns = [512, 1024, 2048, 4096, 8192, 16384],
+            αs = 8:0.1:10
+        )
+    end
 end

@@ -9,7 +9,6 @@ def collate_fn(batch):
 
 
 def get_dataloader(data_dir, splits, sample_size, opts, mode, use_contrastive_learning=False, ns=None):
-    assert opts.valid_label_file is not None, 'Missing valid_label_file in opts, must exists in order to validate the model.'
     label_file = opts.train_label_file if mode == 'train' else opts.valid_label_file
     data_dir = os.path.normpath(data_dir)
     label_file = os.path.normpath(label_file) if label_file else None

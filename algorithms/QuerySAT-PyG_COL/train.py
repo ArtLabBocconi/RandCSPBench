@@ -16,18 +16,12 @@ from data.dataloader import get_dataloader
 def main(args):
     # set seed
     L.seed_everything(args.seed)
-    args.full_test = False # To evaluate accuracy during training we can just use SAT instances in the validation set
+    args.full_test = False
 
     # create dataloaders
-    Ns = [16, 32, 64, 128, 256]
-    if args.use_all_Ns:
-        train_Ns = Ns
-        test_Ns = Ns
-        n_savename = 'all'
-    else:
-        train_Ns = args.train_Ns
-        test_Ns = list(set(Ns) - set(train_Ns))
-        n_savename = ';'.join(map(str, train_Ns))
+    train_Ns = [16, 32, 64, 128, 256]
+    test_Ns = [16, 32, 64, 128, 256]
+    n_savename = 'protocol'
 
     train_loader = get_dataloader(
         args.train_dir, 
@@ -55,12 +49,9 @@ def main(args):
     # define callbacks and logger
     logger = None
     dt_string = datetime.now().strftime('%d-%m-%Y-%H-%M')
-    K = int(args.train_dir.split('/')[3][0])
-    if 'COL' in args.train_dir:
-        run_name = f'{K}COLSAT_{args.task}_QuerySAT_{args.loss}_seed={args.seed}_trainS={args.train_sample_size}_validS={args.valid_sample_size}_perN={args.sample_per_N}_trainNs={n_savename}_{dt_string}'
-    else:
-        run_name = f'{K}SAT_{args.task}_QuerySAT_{args.loss}_seed={args.seed}_trainS={args.train_sample_size}_validS={args.valid_sample_size}_perN={args.sample_per_N}_trainNs={n_savename}_{dt_string}'
-    
+    K = args.train_dir.split('COL')[0][-1]
+    run_name = f'{K}COLSAT_{args.task}_QuerySAT_{args.loss}_seed={args.seed}_trainbatches={len(train_loader)}_validbatches={len(val_loader) if val_loader is not None else 0}_perN={args.sample_per_N}_trainNs={n_savename}_{dt_string}'
+
     if args.resume_from:
         run_name += '_continuation_from_' + args.resume_from.split('_')[-2] # gets the datetime string from the checkpoint saved with the suffix '_last'
 
@@ -74,7 +65,7 @@ def main(args):
     
     checkpoint_callback = ModelCheckpoint(
         monitor='loss_test', 
-        mode='max',
+        mode='min',
         save_top_k=1,
         filename=run_name + '_{epoch}',
         dirpath='ckpt/',
@@ -128,7 +119,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr_step_size', type=int, default=50, help='Learning rate step size')
     parser.add_argument('--lr_factor', type=float, default=0.5, help='Learning rate factor')
     parser.add_argument('--lr_patience', type=int, default=10, help='Learning rate patience')
-    parser.add_argument('--clip_norm', type=float, default=0.8, help='Clipping norm')
+    parser.add_argument('--clip_norm', type=float, default=3, help='Clipping norm')
     parser.add_argument('--seed', type=int, default=0, help='Random seed')
     parser.add_argument('--gpu', type=int, nargs='+', default=0, help='GPU index(s)')
     parser.add_argument('--fast_dev_run', action='store_true', help='Run only a few steps for testing.')

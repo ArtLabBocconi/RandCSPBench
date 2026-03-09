@@ -25,14 +25,16 @@ class SATDataset(Dataset):
             if label_file is None:
                 if 'train' in self.data_partition:
                     self.split_len = self._get_split_len()
-                self.all_labels = self._get_labels(data_dir)
+                self.all_labels = {}
+                for split in self.splits:
+                    self.all_labels[split] = [None] * len(self.all_files[split])
             else:
                 self.all_labels = self._get_labels_from_file(label_file)
 
         # Remove instances with no assignment (labeled unsat by the solver) if the training is supervised 
         # or if this is the testing set (we can only evaluate accuracy on a fully SAT testing set)
         # Otherwise if full_test is true, then get all the labels
-        if ((self.opts.loss == 'supervised' and label_file) or ('test' in self.data_partition)) and self.opts.full_test == False:
+        if ((self.opts.loss == 'supervised' and label_file) and self.opts.full_test == False):
             for split in self.splits:
                 self.all_files[split] = [cnf_filepath for cnf_filepath, label in zip(self.all_files[split], self.all_labels[split]) if torch.isinf(label).sum().item() == 0]
                 self.all_labels[split] = [label for label in self.all_labels[split] if torch.isinf(label).sum().item() == 0]

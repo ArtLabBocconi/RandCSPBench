@@ -17,7 +17,7 @@ from satbench.utils.utils import safe_log
 def _append_rows(csv_path, df_batch):
     temp = Path(csv_path)
     write_header = not temp.exists() or temp.stat().st_size == 0
-    df_batch.to_csv(csv_path, mode='a', index=False, header=write_header)
+    df_batch.to_csv(csv_path, mode='a', index=False, header=write_header, sep=';')
 
 def main(args):
     # Save current settings locally to avoid overwrite
@@ -135,7 +135,7 @@ def main(args):
     if restriced_eval:
         print(f'Evaluation dataset size before filtering: {len(val_loader.dataset)} samples.')
         print(f'Evaluation dataloader batches before filtering: {len(val_loader)} batches.')
-        N_allowed = [16, 32, 64, 128, 256, 1024]
+        N_allowed = [16, 32, 64, 128, 256, 512, 1024]
         ids = [id_str for id_str in ids if int(id_str.split('-')[0]) in N_allowed]
         ids = np.array(ids)
         val_loader.dataset.filter_ids(ids)
@@ -303,7 +303,7 @@ if __name__ == '__main__':
     parser.add_argument('--gpu', type=int, default=0, help='GPU index to use; set <0 for CPU')
     parser.add_argument('--full_test', action='store_false', help='Use all available testing samples (SAT and UNSAT) (True by default)')
     parser.add_argument('--restricted_eval', action='store_true', help='Restrict evaluation to certain problem sizes (False by default)')
-    parser.add_argument('--task', type=str, default='sat', choices=['sat', 'col'], help='Task to evaluate: SAT solving or coloring (default: sat)')
+    parser.add_argument('--task', type=str, default='col', choices=['sat', 'col'], help='Task to evaluate (default: col)')
     
     parser.add_argument('--resume_from', type=str, default=None, help='Resume from existing CSV file by skipping already evaluated problems (default None)')
     parser.add_argument('--save_every', type=int, default=5, help='Flush results to disk every N batches (default 5)')

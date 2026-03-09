@@ -88,7 +88,7 @@ def energy(solution, clauses_compl, clauses_col):
 def main(args):
     filepath = os.path.normpath(os.path.join(args.csv_dir, args.csv_result_name))
     print('Computing coloring solution energy for corresponding SAT reductions in', filepath)
-    results_df = pd.read_csv(filepath)
+    results_df = pd.read_csv(filepath, sep=';')
     valid_data_dir = os.path.join(args.cnf_dir, f'{args.q}COL', 'test-sat')
 
     # rnd.seed(args.seed)

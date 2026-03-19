@@ -1,6 +1,6 @@
 # RandSATBench: Benchmarks for Constraint Satisfaction Problems
 
-[![arXiv](https://img.shields.io/badge/arXiv-1234.56789-b31b1b.svg)](https://arxiv.org/abs/1234.56789)
+[![arXiv](https://img.shields.io/badge/arXiv-2602.18419-b31b1b.svg)](https://arxiv.org/abs/2602.18419)
 
 
 This repository contains all the code and data required to reproduce the benchmarks presented in the paper titled ["Benchmarking Graph Neural Networks in Solving Hard Constraint Satisfaction Problems"](TODO-ARXIV). 

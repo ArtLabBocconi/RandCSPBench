@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import argparse
 import lightning as L
@@ -55,7 +56,7 @@ def main(args):
     # define callbacks and logger
     logger = None
     dt_string = datetime.now().strftime('%d-%m-%Y-%H-%M')
-    K = int(args.train_dir.split('/')[3][0])
+    K = int(re.findall(r"\d+", args.train_dir)[0]) # get K assuming it is the only number in the dataset path 
     run_name = f'{K}SAT_{args.task}_{args.model}_{args.loss}_seed={args.seed}_trainS={args.train_sample_size}_validS={args.valid_sample_size}_perN={args.sample_per_N}_trainNs={n_savename}_{dt_string}'
     
     if args.resume_from:

@@ -12,7 +12,7 @@ def get_dataloader(data_dir, splits, sample_size, opts, mode, use_contrastive_le
     assert opts.valid_label_file is not None, 'Missing valid_label_file in opts, must exists in order to validate the model.'
     label_file = opts.train_label_file if mode == 'train' else opts.valid_label_file
     data_dir = os.path.normpath(data_dir)
-    label_file = os.path.normpath(label_file)
+    label_file = os.path.normpath(label_file) if label_file else None
     dataset = SATDataset(data_dir, splits, sample_size, ns, use_contrastive_learning, opts, label_file=label_file)
     batch_size = opts.batch_size // len(splits) if opts.data_fetching == 'parallel' else opts.batch_size
 

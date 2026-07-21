@@ -15,6 +15,7 @@ algorithms/NeuroSAT/plots/
 algorithms/NeuroSAT/results_csv/
 algorithms/NeuroSAT/lightning_logs/
 algorithms/NeuroSAT/*.csv
+algorithms/NeuroSAT/*.txt
 logs/
 *.cnf
 algorithms/CaDiCal/build
@@ -39,4 +40,5 @@ ckpt/
 cleaning.ipynb
 algorithms/QuerySAT-PyG/results_csv/
 plotting/figures/
+
 

@@ -7,6 +7,7 @@ import random
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from pathlib import Path
 from torch_geometric.data import Dataset
 
 from satbench.utils.utils import parse_cnf_file, clean_clauses
@@ -43,8 +44,8 @@ class SATDataset(Dataset):
         if ns is not None:
             for split in self.splits:
                 # order of operations is quite important here!
-                self.all_labels[split] = [label for cnf_filepath, label in zip(self.all_files[split], self.all_labels[split]) if int(cnf_filepath.split('N')[1].split('_')[0]) in ns] 
-                self.all_files[split] = [cnf_filepath for cnf_filepath in self.all_files[split] if int(cnf_filepath.split('N')[1].split('_')[0]) in ns]
+                self.all_labels[split] = [label for cnf_filepath, label in zip(self.all_files[split], self.all_labels[split]) if int(Path(cnf_filepath).stem.split('N')[1].split('_')[0]) in ns] 
+                self.all_files[split] = [cnf_filepath for cnf_filepath in self.all_files[split] if int(Path(cnf_filepath).stem.split('N')[1].split('_')[0]) in ns]
                
         self.use_contrastive_learning = use_contrastive_learning
         if self.use_contrastive_learning:

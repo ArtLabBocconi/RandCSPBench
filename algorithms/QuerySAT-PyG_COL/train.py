@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import argparse
 import lightning as L
@@ -49,7 +50,7 @@ def main(args):
     # define callbacks and logger
     logger = None
     dt_string = datetime.now().strftime('%d-%m-%Y-%H-%M')
-    K = args.train_dir.split('COL')[0][-1]
+    K = int(re.findall(r"\d+", args.train_dir)[0]) # get K assuming it is the only number in the dataset path 
     run_name = f'{K}COLSAT_{args.task}_QuerySAT_{args.loss}_seed={args.seed}_trainbatches={len(train_loader)}_validbatches={len(val_loader) if val_loader is not None else 0}_perN={args.sample_per_N}_trainNs={n_savename}_{dt_string}'
 
     if args.resume_from:

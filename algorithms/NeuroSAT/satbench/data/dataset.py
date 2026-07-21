@@ -6,6 +6,7 @@ import random
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+from pathlib import Path
 from torch_geometric.data import Dataset
 
 from satbench.utils.utils import parse_cnf_file, clean_clauses
@@ -35,15 +36,15 @@ class SATDataset(Dataset):
         # Otherwise if full_test is true, then get all the labels
         if ((self.opts.loss == 'supervised' and label_file) or ('test' in self.data_partition)) and self.opts.full_test == False:
             for split in self.splits:
-                self.all_files[split] = [cnf_filepath for cnf_filepath, label in zip(self.all_files[split], self.all_labels[split]) if torch.isinf(label).sum().item() == 0]
                 self.all_labels[split] = [label for label in self.all_labels[split] if torch.isinf(label).sum().item() == 0]
+                self.all_files[split] = [cnf_filepath for cnf_filepath, label in zip(self.all_files[split], self.all_labels[split]) if torch.isinf(label).sum().item() == 0]
 
         # Select only the files with the given ns, to train/test the model on a subset of the Ns 
         if ns is not None:
             for split in self.splits:
                 # order of operations is quite important here!
-                self.all_labels[split] = [label for cnf_filepath, label in zip(self.all_files[split], self.all_labels[split]) if int(cnf_filepath.split('_')[0].split('N')[1]) in ns] 
-                self.all_files[split] = [cnf_filepath for cnf_filepath in self.all_files[split] if int(cnf_filepath.split('_')[0].split('N')[1]) in ns]
+                self.all_labels[split] = [label for cnf_filepath, label in zip(self.all_files[split], self.all_labels[split]) if int(Path(cnf_filepath).stem.split('N')[1].split('_')[0]) in ns]                
+                self.all_files[split] = [cnf_filepath for cnf_filepath in self.all_files[split] if int(Path(cnf_filepath).stem.split('N')[1].split('_')[0]) in ns]
                
         self.use_contrastive_learning = use_contrastive_learning
         if self.use_contrastive_learning:
@@ -127,13 +128,13 @@ class SATDataset(Dataset):
         for split in self.splits:
             labels[split] = []
             for cnf_filepath in self.all_files[split]:
-                filename = '/'.join(cnf_filepath.split('/')[-2:])
+                filename = os.path.basename(cnf_filepath)
                 instance_labels = df_labels[df_labels['cnf_file'] == filename]['assignment'].values[0]
                 if len(instance_labels) == 1:
                     lbl = [torch.inf]
                 else:
                     lbl = [0 if int(x) < 0 else 1 for x in instance_labels.split()[:-1]]
-                    N = int(filename.split('_')[0].split('N')[1])
+                    N = int(filename.split('N')[1].split('_')[0])
                     assert len(lbl) == N, f'Length of lbl is {len(lbl)} but N is {N}!'
 
                 labels[split].append(torch.tensor(lbl, dtype=torch.float))
@@ -240,7 +241,7 @@ class SATDataset(Dataset):
                     saved_path = os.path.join(self.processed_dir, file_name)
                     data = torch.load(saved_path)
                     
-                    if torch.isinf(label).all(): 
+                    if label == None or torch.isinf(label).all(): 
                         data.y = torch.tensor([-1 for i in range(data.l_size // 2)], dtype=torch.float)
                         data.sat_problem = False
                     else:

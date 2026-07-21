@@ -84,9 +84,11 @@ class GNNPL(LightningModule):
             c_loss = -safe_log(1 - l_pred_aggr.exp())
             loss = scatter_sum(c_loss, c_batch, dim=0, dim_size=batch_size).mean()
 
-        sat_batch = self.count_sat(data, v_pred, l_edge_index, c_edge_index, c_size, c_batch, batch_size)
         self.log('loss_train', loss.detach().cpu().item(), on_step=True, on_epoch=False, prog_bar=True, batch_size=batch_size)
-        self.log('acc_train', sat_batch.mean().detach().cpu().item(), on_step=True, on_epoch=False, prog_bar=True, batch_size=batch_size)
+
+        sat_batch = self.count_sat(data, v_pred, l_edge_index, c_edge_index, c_size, c_batch, batch_size)
+        if sat_batch.numel() > 0: # log training accuracy onlyif we actually have labels to check against or have sat problems in the batch
+            self.log('acc_train', sat_batch.mean().detach().cpu().item(), on_step=True, on_epoch=False, prog_bar=True, batch_size=batch_size)
         
         return loss
     

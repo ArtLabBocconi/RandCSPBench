@@ -51,13 +51,14 @@ Files with the information about the graphs:
 
 Files with the parameters:
     
-    - We considered 4 relevant parameters:
+    - We considered 5 relevant parameters:
         a. Number of random entries in the embeddings of the first layer (randdim in the code)
         b. Dimension of the embeddings in the hidden layer (hiddim in the code)
         c. dropout
         d. learning rate
+        e. number of learnable layers (numlayers in the code). Its default is 2.
     - The parameters are read from the file in this order.
-    - We provide the file "params_paper_recurrence.txt" as an example. It contains the default parameters used by us.
+    - We provide the file "params_paper_recurrence.txt" as an example. It contains the default parameters used by us. If this file contains only 4 numbers, numlayers takes its default value (numlayers=2). If it contains 5 parameters, numlayers takes the value of the last parameter in the file.
 
 Output:
 

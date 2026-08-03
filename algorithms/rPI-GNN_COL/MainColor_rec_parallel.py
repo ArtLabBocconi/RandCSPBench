@@ -22,7 +22,9 @@ def read_params(fileparams):
     fpar.readline()
     line = fpar.readline().split()
     fpar.close()
-    return int(line[0]), int(line[1]), float(line[2]), float(line[3])
+    if len(line) == 4:
+        return int(line[0]), int(line[1]), float(line[2]), float(line[3]), 2
+    return int(line[0]), int(line[1]), float(line[2]), float(line[3]), int(line[4])
 
 # Specify the problem instance to solve and where to find the dataset(s) here:
 q = int(sys.argv[1])
@@ -38,10 +40,10 @@ init_seed = int(sys.argv[8])
 ntries = int(sys.argv[9])
 unique_id = sys.argv[10]
 
-randdim, hiddim, dout, lrate = read_params(fileparams)
+randdim, hiddim, dout, lrate, numlayers = read_params(fileparams)
 
 print("Parameters are:", flush=True)
-print(f'randdim={randdim}   hiddim={hiddim}    dout={dout}    lrate={lrate}', flush=True)
+print(f'randdim={randdim}   hiddim={hiddim}    dout={dout}    lrate={lrate}    numlayers={numlayers}', flush=True)
 
 
 hypers = {
@@ -51,6 +53,7 @@ hypers = {
         'dropout': dout,
         'learning_rate': lrate,
         'hidden_dim': hiddim,
+        'numlayers': numlayers,
         'seed': init_seed
 }
 
@@ -80,7 +83,7 @@ hypers.update(solver_hypers)
 
 best_colorings, best_costs, best_seeds = init_best(folder)
 
-str_file = f'recurrent_parallel_q_{q}_randdim_{randdim}_hidim_{hiddim}_dout_{"{0:.3f}".format(dout)}_lrate_{"{0:.3f}".format(lrate)}_ntrials_{ntries}_nep_{nepochs}'
+str_file = f'recurrent_parallel_q_{q}_nlayers_{numlayers}_randdim_{randdim}_hidim_{hiddim}_dout_{"{0:.3f}".format(dout)}_lrate_{"{0:.3f}".format(lrate)}_ntrials_{ntries}_nep_{nepochs}'
 
 name_start_col = "coloring_" + str_file
 

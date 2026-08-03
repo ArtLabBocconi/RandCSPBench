@@ -216,7 +216,8 @@ class GNNSage(nn.Module):
     case, just dropout.
     """
 
-    def __init__(self, in_feats, hidden_size, num_classes, dropout, TORCH_DEV, TORCH_DTYPE):
+    def __init__(self, in_feats, hidden_size, num_classes, dropout, TORCH_DEV, TORCH_DTYPE, 
+                 numlayers=2):
         """
         Initialize the model object. Establishes model architecture and relevant hypers (`dropout`, `num_classes`, `agg_type`)
         :param g: Input graph object
@@ -231,6 +232,9 @@ class GNNSage(nn.Module):
         :type dropout: float
         :param agg_type: Aggregation type for each SAGEConv layer. All layers will use the same agg_type
         :type agg_type: str
+        :param numlayers: Number of learnable layers in the GNN (input layer + number of hidden layers)
+        :default numlayers: 2
+        :type numlayers: int
         """
         
         super(GNNSage, self).__init__()
@@ -244,6 +248,17 @@ class GNNSage(nn.Module):
         # output layer
         self.outlayer = SAGEConv(hidden_size, num_classes, "mean")
         self.dropout = nn.Dropout(p=dropout)
+
+        self.hidden_mean = nn.ModuleList()
+        self.hidden_pool = nn.ModuleList()
+        self.hidden_batch_norm_mean = nn.ModuleList()
+        self.hidden_batch_norm_pool = nn.ModuleList()
+        
+        for _ in range(numlayers-2):
+            self.hidden_mean.append(SAGEConv(hidden_size, hidden_size, "mean", activation=F.relu))
+            self.hidden_pool.append(SAGEConv(hidden_size, hidden_size, "pool", activation=F.relu))
+            self.hidden_batch_norm_mean.append(BN1D(hidden_size, device=TORCH_DEV, dtype=TORCH_DTYPE))
+            self.hidden_batch_norm_pool.append(BN1D(hidden_size, device=TORCH_DEV, dtype=TORCH_DTYPE))
 
         self.batch_norm_mean = BN1D(hidden_size, device=TORCH_DEV, dtype=TORCH_DTYPE)
         self.batch_norm_pool = BN1D(hidden_size, device=TORCH_DEV, dtype=TORCH_DTYPE)
@@ -264,6 +279,10 @@ class GNNSage(nn.Module):
         h = self.relu(torch.add(self.batch_norm_mean(self.l1_mean(g, h)), 
                              self.batch_norm_pool(self.l1_pool(g, h))))
         h = self.dropout(h)
+        for i in range(len(self.hidden_mean)):
+            h = self.relu(torch.add(self.hidden_batch_norm_mean[i](self.hidden_mean[i](g, h)), 
+                                    self.hidden_batch_norm_pool[i](self.hidden_pool[i](g, h))))
+            h = self.dropout(h)
         h = self.outlayer(g, h)
 
         return h
@@ -301,10 +320,11 @@ def get_gnn(n_nodes, gnn_hypers, opt_params, torch_device, torch_dtype):
     dropout = gnn_hypers['dropout']
     number_classes = gnn_hypers['number_classes']
     randdim = gnn_hypers['dim_rand_input']
+    numlayers = gnn_hypers.get('numlayers', 2)
 
     # instantiate the GNN
     print(f'Building {model}...', flush=True)
-    net = GNNSage(dim_embedding, hidden_dim, number_classes, dropout, torch_device, torch_dtype)
+    net = GNNSage(dim_embedding, hidden_dim, number_classes, dropout, torch_device, torch_dtype, numlayers=numlayers)
     
     net = net.type(torch_dtype).to(torch_device)
     embed = nn.Embedding(n_nodes, dim_embedding)
@@ -322,7 +342,7 @@ def get_gnn(n_nodes, gnn_hypers, opt_params, torch_device, torch_dtype):
 
 
 # helper function for graph-coloring loss
-def loss_func_mod(probs, all_adj_tensor, nnodes, folder, all_loss):
+def loss_func_mod(probs, all_adj_tensor, nnodes, all_loss):
     """
     Function to compute cost value based on soft assignments (probabilities)
     :param probs: Probability vector, of each node belonging to each class
@@ -337,7 +357,7 @@ def loss_func_mod(probs, all_adj_tensor, nnodes, folder, all_loss):
     #  Divide by 2 to adjust for symmetry about the diagonal
     cumul = 0
     loss_ = 0
-    for fname in os.listdir(folder):
+    for fname in nnodes:
         n = nnodes[fname]
         probs_part = probs[cumul:cumul + n, :]
         loss_part = torch.mul(all_adj_tensor[fname], (probs_part @ probs_part.T)).sum() / 2
@@ -349,7 +369,7 @@ def loss_func_mod(probs, all_adj_tensor, nnodes, folder, all_loss):
 
 
 # helper function for custom loss according to Q matrix
-def loss_func_color_hard(coloring, all_edges, nnodes, all_loss, best_colorings, found_sol, best_costs, folder):
+def loss_func_color_hard(coloring, all_edges, nnodes, all_loss, best_colorings, found_sol, best_costs):
     """
     Function to compute cost value based on color vector (0, 2, 1, 4, 1, ...)
     :param coloring: Vector of class assignments (colors)
@@ -361,7 +381,7 @@ def loss_func_color_hard(coloring, all_edges, nnodes, all_loss, best_colorings, 
     """
 
     cumul = 0
-    for fname in os.listdir(folder):
+    for fname in nnodes:
         n = nnodes[fname]
         if (not found_sol[fname]) and all_loss[fname] < 2:
             coloring_part = coloring[cumul:cumul + n]
@@ -377,7 +397,7 @@ def loss_func_color_hard(coloring, all_edges, nnodes, all_loss, best_colorings, 
 
 
 # helper function for custom loss according to Q matrix
-def loss_func_color_hard_final(coloring, all_edges, nnodes, best_colorings, found_sol, best_costs, folder):
+def loss_func_color_hard_final(coloring, all_edges, nnodes, best_colorings, found_sol, best_costs):
     """
     Function to compute cost value based on color vector (0, 2, 1, 4, 1, ...)
     :param coloring: Vector of class assignments (colors)
@@ -389,7 +409,7 @@ def loss_func_color_hard_final(coloring, all_edges, nnodes, best_colorings, foun
     """
 
     cumul = 0
-    for fname in os.listdir(folder):
+    for fname in nnodes:
         n = nnodes[fname]
         if not found_sol[fname]:
             coloring_part = coloring[cumul:cumul + n]
@@ -460,9 +480,9 @@ def run_gnn_training(all_edges, all_nnodes_clean, graph_dgl, all_adj_mat, net, e
 
         # get cost value with POTTS cost function
         #weight_classes=weight_classes_orig*factor
-        loss = loss_func_mod(probs, all_adj_mat, all_nnodes_clean, folder, all_loss)
+        loss = loss_func_mod(probs, all_adj_mat, all_nnodes_clean, all_loss)
         coloring = torch.argmax(probs, 1)
-        loss_func_color_hard(coloring, all_edges, all_nnodes_clean, all_loss, best_colorings, found_sol, best_costs, folder)
+        loss_func_color_hard(coloring, all_edges, all_nnodes_clean, all_loss, best_colorings, found_sol, best_costs)
         
         if (abs(loss - prev_loss) <= tolerance) | ((loss - prev_loss) > 0):
             cnt += 1
@@ -516,8 +536,8 @@ def run_gnn_training(all_edges, all_nnodes_clean, graph_dgl, all_adj_mat, net, e
     final_coloring = torch.argmax(probs, 1)
     print(f'Final soft loss: {final_loss:.3f}, chromatic_number: {torch.max(final_coloring)+1}', flush=True)
 
-    final_cost = loss_func_color_hard_final(final_coloring, all_edges, all_nnodes_clean, best_colorings, 
-                                            found_sol, best_costs, folder)
+    final_cost = loss_func_color_hard_final(final_coloring, all_edges, all_nnodes_clean, best_colorings,
+                                            found_sol, best_costs)
 
     print('Epoch %d | Final loss: %.5f | Final cost: %.5f' % (epoch, loss.item(), final_cost), flush=True)
 

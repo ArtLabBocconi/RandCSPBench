@@ -105,4 +105,4 @@ if __name__ == "__main__":
         Ns = [2**exp for exp in range(9, 15)]
         cs = np.arange(9.9, 13.51, 0.4)
         path = '5COL/test_ood/'
-        create_dataset(seed, ngraphs_each, Ns, cs, path)
+        create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf)

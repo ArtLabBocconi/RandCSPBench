@@ -44,7 +44,7 @@ curl -fsSL https://install.julialang.org | sh
 We provide 2 datasets for Boolean satisfiability, where each clause in each instance contains 3 and 4 literals, respectively.
 We also provide 2 datasets for coloring problems (where 3 and 5 colors are allowed, respectively).
 
-Each dataset contains a split for the train and test sets. The problem sizes are $N=16,32,64,256$, and the datasets span different connectivities. 
+Each dataset contains a split for the train and test sets. The problem sizes are $N=16,32,64,128,256$, and the datasets span different connectivities. 
 Optionally, out-of-distribution test datasets with sizes up to $N=16384$ can be created. Not all instances of the problems admit solutions.
 
 | Dataset | # Train Instances |# Test Instances |
@@ -58,7 +58,7 @@ Below, we explain how to generate the datasets.
 
 ### K-SAT
 
-The datasets containing random instances of 3-SAT or 5-SAT problems in CNF format can be either downloaded or generated.
+The datasets containing random instances of 3-SAT or 4-SAT problems in CNF format can be either downloaded or generated.
 
 Download with
 ```
@@ -89,7 +89,7 @@ python gen_graphs_coloring.py
 uv run python gen_graphs_coloring.py # if using uv
 ```
 
-The script can take the option `--test-ood` to generate a test set with larger system sizes as well. The option `--to-cnf` also generates Boolean SAT reductions in CNF format for each problem.
+The script can take the option `--gen-ood` to generate a test set with larger system sizes as well. The option `--to-cnf` also generates Boolean SAT reductions in CNF format for each problem.
 
 No ground truth configurations are available for supervised training on this data.
 

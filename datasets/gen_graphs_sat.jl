@@ -77,7 +77,8 @@ end
 
 function (@main)(ARGS)
     s = ArgParseSettings(
-        description = "Generate datasets for k-SAT problems on random Erdos-Renyi like CNF formulas."
+        description = "Generate datasets for k-SAT problems on random Erdos-Renyi like CNF formulas.",
+        autofix_names = true
     )
 
     @add_arg_table s begin
@@ -122,7 +123,7 @@ function (@main)(ARGS)
         Ns = [16, 32, 64, 128, 256],
         αs = 9:0.05:10
     )
-    rm(joinpath(@__DIR__, "4SAT/train"), force=true) # Remove test set generated for retrocompatibility
+    rm(joinpath(@__DIR__, "4SAT/test"), recursive=true, force=true) # Drop the test set generated above (different αs), regenerated below
     
     ## TEST
     generate_dataset(;

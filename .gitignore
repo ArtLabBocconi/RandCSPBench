@@ -40,3 +40,4 @@ cleaning.ipynb
 algorithms/QuerySAT-PyG/results_csv/
 plotting/figures/
 
+datasets/hf/staging/

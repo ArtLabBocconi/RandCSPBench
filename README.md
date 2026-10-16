@@ -154,10 +154,10 @@ In the table below, we report for each test dataset the number of instances and 
 
 | Dataset | # Test Instances | # Solved |
 |---------|-------------|----------|
-| 3SAT    | 42000        | 28657   |
-| 4SAT    |     21000    |    20032   |
-| 3COL    |      20000   |    11760   |
-| 5COL    |      20000   |    9409    |
+| 3SAT    | 42000        | 28656   |
+| 4SAT    |     21000    |    19806   |
+| 3COL    |      20000   |    11750   |
+| 5COL    |      20000   |    9184    |
 
 
 The third column can be used to normalize the score obtained by each algorithm, so that the maximum score is 1 (the score of an algorithm that solves any solvable instance), and the minimum score is 0 (the score of a dummy algorithm that never solves any instance). Notice that 1 is not a strict upper bound, as it could be the case that some very hard instances have not been solved by any algorithm we tested within the time limit.

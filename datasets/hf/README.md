@@ -44,7 +44,7 @@ Instances are drawn at connectivities on both sides of the satisfiability thresh
 | 3-coloring | `coloring/3COL.zip` | `3COL` | 60,000 | 20,000 | 24,000 |
 | 5-coloring | `coloring/5COL.zip` | `5COL` | 60,000 | 20,000 | 24,000 |
 | 3-SAT | `kSAT.zip` | – | 168,000 | 42,000 | 42,000 |
-| 4-SAT | `kSAT.zip` | – | 80,800 | 21,000 | 12,600 |
+| 4-SAT | `kSAT.zip` | – | 84,000 | 21,000 | 12,600 |
 
 Train and test instances have N = 16, 32, 64, 128, 256 variables (nodes). The out-of-distribution (OOD) test sets go from N = 512 up to N = 16384.
 
@@ -128,12 +128,12 @@ unzip kSAT.zip
 
 ```
 3SAT/train/  3SAT/test/  3SAT/test_ood/                 N{N}_M{M}_id{id}.cnf
+4SAT/train/  4SAT/test/  4SAT/test-ood/
 3SAT/train_labels.csv  3SAT/test_labels.csv
-4SAT/train-final/  4SAT/test-final/  4SAT/test-ood/
-4SAT/train_labels-final.csv  4SAT/test_labels-final.csv
+4SAT/train_labels.csv  4SAT/test_labels.csv
 ```
 
-The label files list for each formula whether CaDiCaL found a satisfying assignment within a short time limit, together with the assignment (a minus sign means negation). The `ssNone_processed*` subfolders under `4SAT/` hold cached preprocessing and can be ignored.
+The label files list for each formula whether CaDiCaL found a satisfying assignment within a short time limit, together with the assignment (a minus sign means negation).
 
 ## Citation
 

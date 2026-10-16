@@ -19,6 +19,10 @@ def print_graph(graph, path, filename):
     fout.close()
 
 def create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf=False):
+    # Keep CNFs out of the edge-list folder: some solvers read every file in it
+    cnf_path = os.path.normpath(path) + '-sat'
+    if to_cnf:
+        os.makedirs(cnf_path, exist_ok=True)
     for N in Ns:
         for c in cs:        
             random.seed(seed)
@@ -32,7 +36,7 @@ def create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf=False):
                     F = GraphColoringFormula(g, Q)
                     dimacs = F.to_dimacs()
                     outname = f"COLSAT_N{N}_M{m}_id{id+1}.cnf"
-                    final_path = os.path.normpath(os.path.join(path, outname))
+                    final_path = os.path.join(cnf_path, outname)
                     outfile = open(final_path, "w+")
                     print(dimacs, file=outfile)
                     outfile.close()
@@ -43,7 +47,7 @@ def create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf=False):
 if __name__ == "__main__":
     ## ArgParsing
     parser = argparse.ArgumentParser(
-        description="Create datasets for graph coloring problems (3-COL and 5-COL) on Erdos-Renyi random graphs. The datasets will be created in the folder '3COL' and '5COL' respectively, with subfolders 'train', 'test' and optionally 'test_ood'."
+        description="Create datasets for graph coloring problems (3-COL and 5-COL) on Erdos-Renyi random graphs. The datasets will be created in the folder '3COL' and '5COL' respectively, with subfolders 'train', 'test' and optionally 'test_ood'. CNF reductions go to the sibling folders '<split>-sat'."
     )
     parser.add_argument('--to-cnf', action='store_true', help='If set, write also the SAT reductions for coloring in CNF format')
     parser.add_argument('--gen-ood', action='store_true', help='If set, generate out-of-distribution test dataset with larger graphs')

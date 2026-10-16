@@ -1,11 +1,12 @@
-# RandSATBench: Benchmarks for Constraint Satisfaction Problems
+# RandCSPBench: Benchmarks for Constraint Satisfaction Problems
 
 [![arXiv](https://img.shields.io/badge/arXiv-2602.18419-b31b1b.svg)](https://arxiv.org/abs/2602.18419)
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Datasets-CSPBenchmarks-yellow)](https://huggingface.co/datasets/CarloLucibello/CSPBenchmarks)
 
 
 This repository contains all the code and data required to reproduce the benchmarks presented in the paper titled ["Benchmarking Graph Neural Networks in Solving Hard Constraint Satisfaction Problems"](https://arxiv.org/abs/2602.18419). 
 
-Our benchmark, **RandSATBench**, provides a mixed set of easy, hard, and unsatisfiable instances of constraint satisfaction problems, 
+Our benchmark, **RandCSPBench**, provides a mixed set of easy, hard, and unsatisfiable instances of constraint satisfaction problems, 
 in particular *q-coloring* and *Boolean satisfiability* problems. 
 
 The goal is to have a challenging setting to compare the performance of deep learning methods (in particular Graph Neural Networks) versus classical exact and heuristic solvers. 
@@ -23,7 +24,7 @@ The repository is structured as follows:
 
 Clone the repo with 
 ```
-git clone https://github.com/ArtLabBocconi/RandSATBench
+git clone https://github.com/ArtLabBocconi/RandCSPBench
 ```
 
 **Python**. We recommend [uv](https://docs.astral.sh/uv/) for managing the Python dependencies, provided in the `pyproject.toml` file. 
@@ -54,7 +55,7 @@ Optionally, out-of-distribution test datasets with sizes up to $N=16384$ can be 
 | 3-col    |      60000   | 20000   | 
 | 5-col    |      60000   | 20000   | 
 
-Below, we explain how to generate the datasets.
+All datasets are hosted on Hugging Face at [CarloLucibello/CSPBenchmarks](https://huggingface.co/datasets/CarloLucibello/CSPBenchmarks). Below, we explain how to download or generate them.
 
 ### K-SAT
 
@@ -62,7 +63,7 @@ The datasets containing random instances of 3-SAT or 4-SAT problems in CNF forma
 
 Download with
 ```
-wget https://huggingface.co/datasets/CarloLucibello/kSAT-Benchmarks/resolve/main/kSAT.zip
+wget https://huggingface.co/datasets/CarloLucibello/CSPBenchmarks/resolve/main/kSAT.zip
 unzip kSAT.zip
 ```
 
@@ -81,7 +82,24 @@ The solutions can be found in the files `datasets/{3,4}SAT/train_labels.csv` and
 
 ### q-coloring
 
-In order to generate the random graphs for the 3-coloring and 5-coloring benchmarks, run the following:
+The random graphs for the 3-coloring and 5-coloring benchmarks can be either downloaded or generated.
+
+Download the raw files with
+```
+cd datasets
+wget https://huggingface.co/datasets/CarloLucibello/CSPBenchmarks/resolve/main/coloring/3COL.zip
+wget https://huggingface.co/datasets/CarloLucibello/CSPBenchmarks/resolve/main/coloring/5COL.zip
+unzip 3COL.zip && unzip 5COL.zip
+```
+Each archive contains the edge lists of all the splits (`train/`, `test/`, `test_ood/`) and the SAT reductions in CNF format of the train and test splits (`train-sat/`, `test-sat/`).
+
+The graphs are also available through the Hugging Face `datasets` library:
+```python
+from datasets import load_dataset
+ds = load_dataset("CarloLucibello/CSPBenchmarks", "3COL", split="test")  # or "5COL"; splits: train, test, test_ood
+```
+
+Otherwise, generate the graphs by running:
 ```
 cd datasets
 python gen_graphs_coloring.py
@@ -89,7 +107,7 @@ python gen_graphs_coloring.py
 uv run python gen_graphs_coloring.py # if using uv
 ```
 
-The script can take the option `--gen-ood` to generate a test set with larger system sizes as well. The option `--to-cnf` also generates Boolean SAT reductions in CNF format for each problem.
+The script can take the option `--gen-ood` to generate a test set with larger system sizes as well. The option `--to-cnf` also generates Boolean SAT reductions in CNF format for each problem, saved in the `<split>-sat/` folder next to each split.
 
 No ground truth configurations are available for supervised training on this data.
 
@@ -136,10 +154,10 @@ In the table below, we report for each test dataset the number of instances and 
 
 | Dataset | # Test Instances | # Solved |
 |---------|-------------|----------|
-| 3SAT    | 42000        | 28657   |
-| 4SAT    |     21000    |    20032   |
-| 3COL    |      20000   |    11760   |
-| 5COL    |      20000   |    9409    |
+| 3SAT    | 42000        | 28656   |
+| 4SAT    |     21000    |    19806   |
+| 3COL    |      20000   |    11750   |
+| 5COL    |      20000   |    9184    |
 
 
 The third column can be used to normalize the score obtained by each algorithm, so that the maximum score is 1 (the score of an algorithm that solves any solvable instance), and the minimum score is 0 (the score of a dummy algorithm that never solves any instance). Notice that 1 is not a strict upper bound, as it could be the case that some very hard instances have not been solved by any algorithm we tested within the time limit.

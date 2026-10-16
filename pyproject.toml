@@ -15,3 +15,10 @@ dependencies = [
     "pandas>=2.3,<3.0",
     "scipy>=1.15,<2.0",
 ]
+
+[dependency-groups]
+hf = [
+    "datasets>=5.1.0",
+    "huggingface-hub>=2.2.0",
+    "python-sat>=1.9.dev16",
+]

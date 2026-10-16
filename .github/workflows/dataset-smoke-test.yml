@@ -1,0 +1,74 @@
+name: Dataset generation smoke test
+
+# Exercises the dataset generation scripts end-to-end (including the
+# --test-ood / --gen-ood flags) at a tiny scale, so a regression like
+# ArgParse's "test-ood" vs "test_ood" KeyError, or a missing positional
+# argument in an OOD branch, fails CI instead of surfacing on a real run.
+# Each script reads an env var (GEN_SAT_SMOKE_TEST / GEN_COLORING_SMOKE_TEST)
+# to shrink its Ns/samples/alphas for this purpose; see their definitions.
+
+on:
+  push:
+    paths:
+      - "datasets/**"
+      - ".github/workflows/dataset-smoke-test.yml"
+  pull_request:
+    paths:
+      - "datasets/**"
+      - ".github/workflows/dataset-smoke-test.yml"
+
+jobs:
+  sat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: "1"
+      - uses: julia-actions/cache@v2
+      - name: Generate (smoke scale)
+        working-directory: datasets
+        run: julia --project=. gen_graphs_sat.jl --test-ood
+        env:
+          GEN_SAT_SMOKE_TEST: "true"
+      - name: Check expected file counts
+        working-directory: datasets
+        run: |
+          check() {
+            local dir=$1 expected=$2
+            local actual=$(find "$dir" -name '*.cnf' | wc -l)
+            echo "$dir: $actual (expected $expected)"
+            [ "$actual" -eq "$expected" ] || { echo "::error::$dir has $actual .cnf files, expected $expected"; exit 1; }
+          }
+          check 3SAT/train 12
+          check 3SAT/test 12
+          check 3SAT/test_ood 12
+          check 4SAT/train 12
+          check 4SAT/test 20
+          check 4SAT/test_ood 20
+
+  coloring:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+      - name: Generate (smoke scale)
+        working-directory: datasets
+        run: uv run python gen_graphs_coloring.py --gen-ood --to-cnf
+        env:
+          GEN_COLORING_SMOKE_TEST: "true"
+      - name: Check expected file counts
+        working-directory: datasets
+        run: |
+          check() {
+            local dir=$1 expected=$2
+            local actual=$(find "$dir" -type f | wc -l)
+            echo "$dir: $actual (expected $expected)"
+            [ "$actual" -eq "$expected" ] || { echo "::error::$dir has $actual files, expected $expected"; exit 1; }
+          }
+          check 3COL/train 80
+          check 3COL/test 80
+          check 3COL/test_ood 80
+          check 5COL/train 80
+          check 5COL/test 80
+          check 5COL/test_ood 80

@@ -75,7 +75,7 @@ julia gen_graphs_sat.jl --test-ood # to also generate larger problem sizes
 ```
 
 We also provide ground truth solutions obtained by running the CaDiCal solver for a short time (a few minutes) on each instance. 
-The solutions can be found in the files `datasets/3SAT/train_labels.csv` and `datasets/4SAT/train_labels.csv`. A labels' file contains in each row a cnf file name, whether it could be solved or not by CaDiCal, and the assignment of variables (minus denotes negation).
+The solutions can be found in the files `datasets/{3,4}SAT/train_labels.csv` and `datasets/{3,4}SAT/test_labels.csv`. A labels' file contains in each row a cnf file name, whether it could be solved or not by CaDiCal, and the assignment of variables (minus denotes negation).
 
 
 

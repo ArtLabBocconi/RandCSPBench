@@ -50,59 +50,56 @@ if __name__ == "__main__":
     args = parser.parse_args()
     to_cnf = args.to_cnf
     gen_ood = args.gen_ood
-    
+
+    # Shrink the dataset for CI smoke-testing (GEN_COLORING_SMOKE_TEST=true),
+    # exercising every code path (including --gen-ood) without writing the
+    # full-size dataset.
+    smoke = os.environ.get("GEN_COLORING_SMOKE_TEST", "false").lower() == "true"
+    n_train = 2 if smoke else 1200
+    n_test = 2 if smoke else 400
+    Ns_main = [16, 32] if smoke else [2**exp for exp in range(4, 9)]
+    Ns_ood = [512, 1024] if smoke else [2**exp for exp in range(9, 15)]
+
     print("Creating 3-COL train dataset...")
     Q = 3
     seed = 2
-    ngraphs_each = 1200
-    Ns = [2**exp for exp in range(4, 9)]
     cs = np.arange(3.32, 4.95, 0.18)
     path = '3COL/train/'
-    create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf)
-    
+    create_dataset(seed, n_train, Ns_main, cs, path, Q, to_cnf)
+
     print("Creating 3-COL test dataset...")
     Q = 3
     seed = 1
-    ngraphs_each = 400
-    Ns = [2**exp for exp in range(4, 9)]
     cs = np.arange(3.32, 4.95, 0.18)
     path = '3COL/test/'
-    create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf)
+    create_dataset(seed, n_test, Ns_main, cs, path, Q, to_cnf)
 
     if gen_ood:
         print("Creating 3-COL test-ood dataset...")
         Q = 3
         seed = 1
-        ngraphs_each = 400
-        Ns = [2**exp for exp in range(9, 15)]
         cs = np.arange(3.32, 4.95, 0.18)
         path = '3COL/test_ood/'
-        create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf)
-    
+        create_dataset(seed, n_test, Ns_ood, cs, path, Q, to_cnf)
+
     print("Creating 5-COL train dataset...")
     Q = 5
     seed = 2
-    ngraphs_each = 1200
-    Ns = [2**exp for exp in range(4, 9)]
     cs = np.arange(9.9, 13.51, 0.4)
     path = '5COL/train/'
-    create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf)
+    create_dataset(seed, n_train, Ns_main, cs, path, Q, to_cnf)
 
     print("Creating 5-COL test dataset...")
     Q = 5
     seed = 1
-    ngraphs_each = 400
-    Ns = [2**exp for exp in range(4, 9)]
     cs = np.arange(9.9, 13.51, 0.4)
     path = '5COL/test/'
-    create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf)
+    create_dataset(seed, n_test, Ns_main, cs, path, Q, to_cnf)
 
     if gen_ood:
         print("Creating 5-COL test-ood dataset...")
         Q = 5
         seed = 1
-        ngraphs_each = 400
-        Ns = [2**exp for exp in range(9, 15)]
         cs = np.arange(9.9, 13.51, 0.4)
         path = '5COL/test_ood/'
-        create_dataset(seed, ngraphs_each, Ns, cs, path, Q, to_cnf)
+        create_dataset(seed, n_test, Ns_ood, cs, path, Q, to_cnf)

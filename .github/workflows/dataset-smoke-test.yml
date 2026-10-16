@@ -66,9 +66,9 @@ jobs:
             echo "$dir: $actual (expected $expected)"
             [ "$actual" -eq "$expected" ] || { echo "::error::$dir has $actual files, expected $expected"; exit 1; }
           }
-          check 3COL/train 80
-          check 3COL/test 80
-          check 3COL/test_ood 80
-          check 5COL/train 80
-          check 5COL/test 80
-          check 5COL/test_ood 80
+          for q in 3 5; do
+            for split in train test test_ood; do
+              check ${q}COL/$split 40
+              check ${q}COL/$split-sat 40
+            done
+          done

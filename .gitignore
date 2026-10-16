@@ -17,10 +17,10 @@ algorithms/NeuroSAT/lightning_logs/
 algorithms/NeuroSAT/*.csv
 logs/
 *.cnf
-algorithms/CaDiCal/build
+algorithms/CaDiCal_SAT/build
+algorithms/CaDiCal_SAT/makefile
 algorithms/CaDiCal/src
 algorithms/CaDiCal/scripts
-algorithms/CaDiCal/makefile
 
 # Dataset files
 datasets/3SAT/*

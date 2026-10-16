@@ -6,15 +6,24 @@ using ArgParse
 include("src-julia/SAT.jl")
 using .SAT: randomcnf, writecnf
 
-function generate_random_cnfs(train_samples, test_samples, traindir, testdir, N, α, k, rng)
+function generate_random_cnfs(train_samples, test_samples, traindir, testdir, N, α, k, rng, train_ids, test_ids)
     println("Generating training and testing data with N: $N, alpha: $α...")
-    for id in 1:train_samples
+    # Filenames only encode (N, M, id), and M = round(N*α) is not injective in α
+    # for small N and fine-grained α grids: distinct α's can round to the same M.
+    # train_ids/test_ids count samples per M across all α's (instead of resetting
+    # id to 1 at every α), so colliding α's accumulate instead of overwriting
+    # each other's files.
+    for _ in 1:train_samples
         cnf = randomcnf(; N, α, k, rng)
+        id = get(train_ids, cnf.M, 0) + 1
+        train_ids[cnf.M] = id
         writecnf(joinpath(traindir, "N$(N)_M$(cnf.M)_id$(id).cnf"), cnf)
     end
 
-    for id in 1:test_samples
+    for _ in 1:test_samples
         cnf = randomcnf(; N, α, k, rng)
+        id = get(test_ids, cnf.M, 0) + 1
+        test_ids[cnf.M] = id
         writecnf(joinpath(testdir, "N$(N)_M$(cnf.M)_id$(id).cnf"), cnf)
     end
 end
@@ -43,8 +52,9 @@ function generate_dataset(;
 
     for (i, N) in enumerate(Ns)
         rng = StableRNG(seed + N) # Set respective RNG for each N. Will be used for all αs
+        train_ids, test_ids = Dict{Int,Int}(), Dict{Int,Int}()
         for (j, α) in enumerate(αs)
-            generate_random_cnfs(train_samples, test_samples, traindir, testdir, N, α, k, rng)
+            generate_random_cnfs(train_samples, test_samples, traindir, testdir, N, α, k, rng, train_ids, test_ids)
         end
     end
 
@@ -67,8 +77,9 @@ function generate_ood_testset(;
     for (i, N) in enumerate(Ns)
         mkpath(dir)
         rng = StableRNG(seed + N) # Set respective RNG for each N. Will be used for all αs
+        ids = Dict{Int,Int}()
         for (j, α) in enumerate(αs)
-            generate_random_cnfs(0, samples, dir, dir, N, α, k, rng)
+            generate_random_cnfs(0, samples, dir, dir, N, α, k, rng, ids, ids)
         end
     end
 

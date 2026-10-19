@@ -2,6 +2,7 @@
 
 [![arXiv](https://img.shields.io/badge/arXiv-2602.18419-b31b1b.svg)](https://arxiv.org/abs/2602.18419)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Datasets-CSPBenchmarks-yellow)](https://huggingface.co/datasets/CarloLucibello/CSPBenchmarks)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23470560.svg)](https://doi.org/10.5281/zenodo.23470560)
 
 
 This repository contains all the code and data required to reproduce the benchmarks presented in the paper titled ["Benchmarking Graph Neural Networks in Solving Hard Constraint Satisfaction Problems"](https://arxiv.org/abs/2602.18419). 

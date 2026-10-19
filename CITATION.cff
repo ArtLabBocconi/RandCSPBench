@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Benchmarking Graph Neural Networks in Solving Hard Constraint Satisfaction Problems"
+authors:
+  - family-names: Skenderi
+    given-names: Geri
+  - family-names: Buffoni
+    given-names: Lorenzo
+  - family-names: "D'Amico"
+    given-names: Francesco
+  - family-names: Machado
+    given-names: David
+  - family-names: Marino
+    given-names: Raffaele
+  - family-names: Negri
+    given-names: Matteo
+  - family-names: Ricci-Tersenghi
+    given-names: Federico
+  - family-names: Lucibello
+    given-names: Carlo
+  - family-names: Angelini
+    given-names: Maria Chiara
+repository-code: "https://github.com/ArtLabBocconi/RandCSPBench"
+license: MIT
